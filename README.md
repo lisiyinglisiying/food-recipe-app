@@ -28,7 +28,7 @@ streamlit run ai_assistant.py
 
 ```
 ai_assistant.py         应用主入口（原版），内置登录页、侧边导航与页面分发
-ai_assistant.py        智能助教（双角色知识库 + 匹配引擎）
+—                       （ai_assistant.py 内含：智能助教知识库 + 匹配引擎）
 growth.py              成长档案与素养雷达图
 tasks.py               任务中心
 questions.py           疑问广场
