@@ -19,7 +19,7 @@
 
 ```bash
 pip install -r requirements.txt
-streamlit run app.py
+streamlit run ai_assistant.py
 ```
 
 默认访问 http://localhost:8501
@@ -27,7 +27,7 @@ streamlit run app.py
 ## 项目结构
 
 ```
-app.py                 应用主入口，负责全局状态、侧边导航与页面分发
+ai_assistant.py         应用主入口（原版），内置登录页、侧边导航与页面分发
 ai_assistant.py        智能助教（双角色知识库 + 匹配引擎）
 growth.py              成长档案与素养雷达图
 tasks.py               任务中心
