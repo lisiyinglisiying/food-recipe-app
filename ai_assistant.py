@@ -3432,9 +3432,18 @@ def render_chat_area(role, current_category):
     # ===== 注入样式：白色浮框输入框 + 聊天容器 =====
     st.html(f"""
     <style>
+        /* ========== 压缩顶部留白，给聊天区腾出高度 ========== */
+        [data-testid="stMain"] .block-container {{
+            padding-top: 1rem !important;
+            padding-bottom: 0.5rem !important;
+        }}
+
         /* ========== 聊天容器 ========== */
         #{container_id} {{
-            height: 500px !important;
+            /* 纯 CSS 按视口算高度：上方标题区约 260px + 底部输入框约 96px，其余全给消息区 */
+            height: clamp(240px, calc(100vh - 360px), 620px) !important;
+            max-height: calc(100vh - 360px) !important;
+            min-height: 240px !important;
             display: flex !important;
             flex-direction: column !important;
             overflow: hidden !important;
@@ -3446,7 +3455,8 @@ def render_chat_area(role, current_category):
             overflow-y: auto !important;
             overflow-x: hidden !important;
             padding: 12px 8px 0 8px !important;
-            scroll-behavior: smooth;
+            /* 不能用 smooth：会与定时跟随冲突导致永远滚不到底 */
+            scroll-behavior: auto !important;
             min-height: 0 !important;
         }}
         /* 消息区滚动条美化 */
@@ -3726,36 +3736,55 @@ def render_chat_area(role, current_category):
     )
     st.html(chat_container_html)
 
-    # ===== 注入 JS：仅做消息区自动滚动到底 =====
-    # 注意：绝不能用 JS 搬动 .stChatInput 等 React 管理的节点，
-    # 否则 React 更新时会抛 "Failed to execute 'removeChild' on 'Node'" 白屏报错。
+    # ===== 注入 JS：消息区自动跟随到底部 =====
+    # 只改本元素自身的 scrollTop，绝不移动 React 管理的节点，
+    # 否则会触发 "Failed to execute 'removeChild' on 'Node'"。
     js_code = f"""
     (function() {{
         var doc = parent.document;
+        var win = parent.window;
         var messagesId = '{container_id}-messages';
+        var lastTop = -1;
+        var lastBox = null;
+        var paused = false;
 
-        function scrollToBottom() {{
-            var el = doc.getElementById(messagesId);
-            if (el) el.scrollTop = el.scrollHeight;
-        }}
-
-        scrollToBottom();
-        setTimeout(scrollToBottom, 60);
-        setTimeout(scrollToBottom, 200);
-        setTimeout(scrollToBottom, 500);
-
-        function observeMessages() {{
+        function tick() {{
             var box = doc.getElementById(messagesId);
-            if (!box || box.__scrollObserved__) return;
-            box.__scrollObserved__ = true;
-            new MutationObserver(scrollToBottom).observe(
-                box, {{ childList: true, subtree: true }}
-            );
+            if (!box) {{ lastTop = -1; lastBox = null; return; }}
+            // Streamlit 重渲染会换掉节点（有新消息），重置状态并恢复自动跟随
+            if (box !== lastBox) {{ lastBox = box; lastTop = -1; paused = false; }}
+            var maxTop = box.scrollHeight - box.clientHeight;
+            if (maxTop <= 0) {{ lastTop = 0; return; }}
+
+            // 同一节点内位置明显变小时，说明用户自己往上翻历史 → 暂停跟随
+            if (lastTop >= 0 && box.scrollTop < lastTop - 24) {{ paused = true; }}
+            if (paused) {{
+                // 用户自己回到底部则恢复跟随
+                if (box.scrollHeight - box.scrollTop - box.clientHeight < 24) paused = false;
+                else {{ lastTop = box.scrollTop; return; }}
+            }}
+
+            try {{
+                box.scrollTo({{ top: maxTop, behavior: 'instant' }});
+            }} catch (e) {{
+                box.scrollTop = maxTop;
+            }}
+            lastTop = box.scrollTop;
         }}
 
-        observeMessages();
-        setTimeout(observeMessages, 300);
-        setTimeout(observeMessages, 900);
+        tick();
+
+        // 监听整个 body：Streamlit 重渲染会替换消息区节点，只有 body 级监听能看到
+        if (win.__chatFollowObserver) {{
+            try {{ win.__chatFollowObserver.disconnect(); }} catch (e) {{}}
+        }}
+        win.__chatFollowObserver = new win.MutationObserver(tick);
+        win.__chatFollowObserver.observe(doc.body, {{ childList: true, subtree: true }});
+
+        // 定时兜底，防止某些变更不触发 observer
+        var t = win.__chatFollowTimer;
+        if (t) clearInterval(t);
+        win.__chatFollowTimer = setInterval(tick, 500);
     }})();
     """
     components.html(f"<script>{js_code}</script>", height=0)
