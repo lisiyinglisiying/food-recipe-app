@@ -563,7 +563,7 @@ def inject_global_style(dark_mode: bool = False, font_scale: str = "正常", eye
     """
 
     # 注入 CSS
-    st.markdown(css, unsafe_allow_html=True)
+    st.html(css)
 
 
 def inject_component_css(css_code: str):
@@ -573,4 +573,4 @@ def inject_component_css(css_code: str):
     参数:
         css_code: 自定义 CSS 代码字符串
     """
-    st.markdown(f"<style>{css_code}</style>", unsafe_allow_html=True)
+    st.html(f"<style>{css_code}</style>")

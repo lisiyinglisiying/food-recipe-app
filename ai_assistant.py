@@ -3194,7 +3194,7 @@ def render_suggested_questions(role, current_category):
     color = category_info.get("color", "#4A90D9")
 
     # 分类标题卡片
-    st.markdown(f"""
+    st.html(f"""
     <div style="padding: 1rem;
                 background: linear-gradient(135deg, {color}15, {color}05);
                 border-radius: 12px;
@@ -3206,7 +3206,7 @@ def render_suggested_questions(role, current_category):
             常见问题推荐，点击快速提问
         </div>
     </div>
-    """, unsafe_allow_html=True)
+    """)
 
     st.markdown("**🔥 热门问题**")
 
@@ -3392,7 +3392,7 @@ def _render_wechat_bubble(msg_content, role):
         role: 消息角色（user / assistant）
     """
     bubble_html = _get_bubble_html(msg_content, role)
-    st.markdown(bubble_html, unsafe_allow_html=True)
+    st.html(bubble_html)
 
 
 def render_chat_area(role, current_category):
@@ -3430,7 +3430,7 @@ def render_chat_area(role, current_category):
     chat_history = st.session_state[state_key]
 
     # ===== 注入样式：白色浮框输入框 + 聊天容器 =====
-    st.markdown(f"""
+    st.html(f"""
     <style>
         /* ========== 聊天容器 ========== */
         #{container_id} {{
@@ -3661,7 +3661,7 @@ def render_chat_area(role, current_category):
             40% {{ transform: scale(1); opacity: 1; }}
         }}
     </style>
-    """, unsafe_allow_html=True)
+    """)
 
     # ===== 判断是否正在生成回复 =====
     is_generating = False
@@ -3724,7 +3724,7 @@ def render_chat_area(role, current_category):
         f'<div id="{messages_id}" class="chat-messages-area">{all_bubbles_html}</div>'
         f'</div>'
     )
-    st.markdown(chat_container_html, unsafe_allow_html=True)
+    st.html(chat_container_html)
 
     # ===== 注入 JS：仅做消息区自动滚动到底 =====
     # 注意：绝不能用 JS 搬动 .stChatInput 等 React 管理的节点，
@@ -3918,7 +3918,7 @@ if __name__ == "__main__":
 
         with col_mid:
             # Logo
-            st.markdown("""
+            st.html("""
             <div style="text-align: center; margin-top: 40px; margin-bottom: 16px;">
                 <div style="font-size: 4rem; margin-bottom: 8px;">🍳</div>
                 <h1 style="font-size: 1.8rem; font-weight: 700; margin: 0;
@@ -3931,7 +3931,7 @@ if __name__ == "__main__":
                     信息科技智能助教系统
                 </p>
             </div>
-            """, unsafe_allow_html=True)
+            """)
 
             # 身份选择（用原生 radio，选中状态清晰可见）
             st.markdown("##### 选择身份")
@@ -4010,18 +4010,18 @@ if __name__ == "__main__":
                         st.session_state["current_page"] = "ai_assistant"
                         st.rerun()
 
-            st.markdown("""
+            st.html("""
             <div style="text-align: center; margin-top: 20px; font-size: 0.8rem; color: #aaa;">
                 🍳 美食数字菜谱项目 v1.0 · 信息科技智能助教
             </div>
-            """, unsafe_allow_html=True)
+            """)
 
     # ===== 已登录：主应用 =====
     else:
         # ===== 侧边栏导航 =====
         with st.sidebar:
             # Logo 区域
-            st.markdown("""
+            st.html("""
             <div style="text-align: center; padding: 1rem 0;">
                 <div style="font-size: 2.5rem; margin-bottom: 0.5rem;">🍳</div>
                 <h3 style="margin: 0; background: linear-gradient(135deg, #3498db, #e67e22); 
@@ -4033,7 +4033,7 @@ if __name__ == "__main__":
                     信息科技智能助教
                 </p>
             </div>
-            """, unsafe_allow_html=True)
+            """)
 
             st.markdown("---")
 
@@ -4103,7 +4103,7 @@ if __name__ == "__main__":
                 </div>
             </div>
             """
-            st.markdown(user_html, unsafe_allow_html=True)
+            st.html(user_html)
 
             st.markdown("---")
 
