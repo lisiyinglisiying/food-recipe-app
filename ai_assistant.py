@@ -3726,131 +3726,36 @@ def render_chat_area(role, current_category):
     )
     st.markdown(chat_container_html, unsafe_allow_html=True)
 
-    # ===== 注入 JS：自动滚动 + 输入框精确定位 =====
-    # components.html 在同域 iframe 中，可通过 parent.document 访问主页面
+    # ===== 注入 JS：仅做消息区自动滚动到底 =====
+    # 注意：绝不能用 JS 搬动 .stChatInput 等 React 管理的节点，
+    # 否则 React 更新时会抛 "Failed to execute 'removeChild' on 'Node'" 白屏报错。
     js_code = f"""
     (function() {{
-        var containerId = '{container_id}';
-        var messagesId = '{container_id}-messages';
         var doc = parent.document;
-        var win = parent.window;
+        var messagesId = '{container_id}-messages';
 
         function scrollToBottom() {{
             var el = doc.getElementById(messagesId);
             if (el) el.scrollTop = el.scrollHeight;
         }}
+
         scrollToBottom();
-        setTimeout(scrollToBottom, 50);
-        setTimeout(scrollToBottom, 150);
-        setTimeout(scrollToBottom, 400);
+        setTimeout(scrollToBottom, 60);
+        setTimeout(scrollToBottom, 200);
+        setTimeout(scrollToBottom, 500);
 
-        function setupScrollObserver() {{
-            var msgBox = doc.getElementById(messagesId);
-            if (!msgBox) return;
-            if (msgBox.__scrollObserved__) return;
-            msgBox.__scrollObserved__ = true;
-            var observer = new MutationObserver(scrollToBottom);
-            observer.observe(msgBox, {{ childList: true, subtree: true, characterData: true }});
-        }}
-        setupScrollObserver();
-
-        function fixInputFlexHeight() {{
-            var chatInput = doc.querySelector('.stChatInput');
-            if (!chatInput) return;
-            // 修复 flex 布局下内部元素被拉伸的问题
-            // 只对最外层的容器元素设置，避免影响 textarea 的父容器
-            var innerEls = chatInput.querySelectorAll('section, form, fieldset');
-            for (var i = 0; i < innerEls.length; i++) {{
-                innerEls[i].style.flex = '0 0 auto';
-                innerEls[i].style.minHeight = '0';
-                innerEls[i].style.height = 'auto';
-                innerEls[i].style.width = '100%';
-            }}
-            // 确保 textarea 本身的高度和宽度正确
-            var textarea = chatInput.querySelector('textarea');
-            if (textarea) {{
-                textarea.style.height = '44px';
-                textarea.style.minHeight = '44px';
-                textarea.style.flex = '1 1 auto';
-                textarea.style.width = '100%';
-                textarea.style.boxSizing = 'border-box';
-            }}
-            // 确保输入框内部的直接子div占满宽度
-            var inputRoot = chatInput.querySelector('[data-testid="stChatInput"]');
-            if (inputRoot && inputRoot.firstElementChild) {{
-                inputRoot.firstElementChild.style.display = 'flex';
-                inputRoot.firstElementChild.style.width = '100%';
-                inputRoot.firstElementChild.style.flex = '1 1 auto';
-            }}
+        function observeMessages() {{
+            var box = doc.getElementById(messagesId);
+            if (!box || box.__scrollObserved__) return;
+            box.__scrollObserved__ = true;
+            new MutationObserver(scrollToBottom).observe(
+                box, {{ childList: true, subtree: true }}
+            );
         }}
 
-        function moveChatInputToContainer() {{
-            var chatInput = doc.querySelector('.stChatInput');
-            var chatContainer = doc.getElementById(containerId);
-            if (!chatInput || !chatContainer) return;
-
-            // 如果已经在容器内了就不重复移动
-            if (chatInput.parentElement && chatInput.parentElement.id === containerId) return;
-
-            // 把输入框移动到聊天容器内部底部（消息区后面）
-            chatContainer.appendChild(chatInput);
-
-            // 移除固定定位相关的内联样式
-            chatInput.style.position = '';
-            chatInput.style.bottom = '';
-            chatInput.style.left = '';
-            chatInput.style.right = '';
-            chatInput.style.width = '';
-            chatInput.style.top = '';
-            chatInput.style.transform = '';
-            chatInput.style.zIndex = '';
-        }}
-
-        function resizeChatContainer() {{
-            var chatContainer = doc.getElementById(containerId);
-            if (!chatContainer) return;
-            var rect = chatContainer.getBoundingClientRect();
-            // 计算可用高度：视口高度 - 容器顶部距离 - 底部边距
-            var availableHeight = win.innerHeight - rect.top - 30;
-            // 最高不超过 550px，确保输入框位置适中，不用滚动就能点到
-            var height = Math.min(availableHeight, 550);
-            // 最小 400px
-            height = Math.max(height, 400);
-            chatContainer.style.setProperty('height', height + 'px', 'important');
-        }}
-
-        moveChatInputToContainer();
-        fixInputFlexHeight();
-        resizeChatContainer();
-        setTimeout(moveChatInputToContainer, 100);
-        setTimeout(fixInputFlexHeight, 100);
-        setTimeout(resizeChatContainer, 100);
-        setTimeout(moveChatInputToContainer, 300);
-        setTimeout(fixInputFlexHeight, 300);
-        setTimeout(resizeChatContainer, 300);
-        setTimeout(moveChatInputToContainer, 600);
-        setTimeout(fixInputFlexHeight, 600);
-        setTimeout(resizeChatContainer, 600);
-        setTimeout(moveChatInputToContainer, 1000);
-        setTimeout(fixInputFlexHeight, 1000);
-        setTimeout(resizeChatContainer, 1000);
-
-        win.addEventListener('resize', function() {{
-            clearTimeout(win._chatResizeTimer);
-            win._chatResizeTimer = setTimeout(resizeChatContainer, 150);
-        }});
-
-        var domObserver = new MutationObserver(function() {{
-            var ci = doc.querySelector('.stChatInput');
-            var cc = doc.getElementById(containerId);
-            if (ci && cc && ci.parentElement && ci.parentElement.id !== containerId) {{
-                moveChatInputToContainer();
-            }}
-            fixInputFlexHeight();
-            setupScrollObserver();
-            resizeChatContainer();
-        }});
-        domObserver.observe(doc.body, {{ childList: true, subtree: true }});
+        observeMessages();
+        setTimeout(observeMessages, 300);
+        setTimeout(observeMessages, 900);
     }})();
     """
     components.html(f"<script>{js_code}</script>", height=0)
